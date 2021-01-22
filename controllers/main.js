@@ -65,7 +65,14 @@ const getCode = async (req, res, next) => {
     }
 }
 
+const getAllCodes = async (req, res, next) => {
+    const codes = await readFile('files/codes.json');
+    const codesArray = JSON.parse(codes, 'utf8');
+    res.json(codesArray);
+}
+
 module.exports = {
     getPage,
-    getCode
+    getCode,
+    getAllCodes
 }
