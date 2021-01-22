@@ -4,18 +4,48 @@ const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
 
 const getPage = async (req, res, next) => {
+    try {    
+        res.render('index');
+    } catch (error) {
+        next(error);
+    }
+}
+
+const getCode = async (req, res, next) => {
     try {
+        const { seenCodes } = req.body;
+        
         const codes = await readFile('files/codes.json');
         const codesArray = JSON.parse(codes, 'utf8');
 
         let codeToShow = '';
         let indexOfCode = 0;
         let countOfCurrentCode = 0;
+        let codeId = 0;
+
+        if(seenCodes.length == 0){
+            for(let i = 0; i < codesArray.length; i++){
+                if(codesArray[i].count > 0){
+                    codeToShow = codesArray[i].code;
+                    codeId = codesArray[i].id;
+                    indexOfCode = i;
+                    countOfCurrentCode = codesArray[i].count--;
+                    break;
+                }
+            }
+    
+            await writeFile('files/codes.json', JSON.stringify(codesArray));
+            return res.json({
+                id: codeId,
+                code: codeToShow,
+                count: countOfCurrentCode
+            }); 
+        }
 
         for(let i = 0; i < codesArray.length; i++){
-            if(codesArray[i].count > 0){
-                console.log(codesArray[i].count);
+            if(codesArray[i].count > 0 && !seenCodes.includes(codesArray[i].id)){
                 codeToShow = codesArray[i].code;
+                codeId = codesArray[i].id;
                 indexOfCode = i;
                 countOfCurrentCode = codesArray[i].count--;
                 break;
@@ -24,25 +54,18 @@ const getPage = async (req, res, next) => {
 
         await writeFile('files/codes.json', JSON.stringify(codesArray));
 
-        const html = `<!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Home ${countOfCurrentCode}</title>
-            </head>
-                <body>
-                ${codeToShow}
-                </body>
-            </html>`;
-    
-    
-        res.render('index', { code : html});
+        return res.json({
+            id: codeId,
+            code: codeToShow,
+            count: countOfCurrentCode
+        }); 
+        
     } catch (error) {
         next(error);
     }
 }
 
 module.exports = {
-    getPage
+    getPage,
+    getCode
 }
